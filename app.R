@@ -1,10 +1,11 @@
 library(tidyverse)
 library(readxl)
 library(qdap)
-library(data.table)
+library(shiny)
+#library(data.table)
 library(scales)
-library(waffle)
-library(ggExtra)
+#library(waffle)
+#library(ggExtra)
 
 #load dataset from Dropbox----
 main <- read.csv('https://www.dropbox.com/s/a6jtuhe3sinc8wc/main.csv?raw=1')
