@@ -69,7 +69,7 @@ ui <- fluidPage(
                           
                           checkboxInput('jitter', 'Jitter'),
                           checkboxInput('smooth', 'Smooth'),
-                          #checkboxInput('histogram', 'Histogram')
+                          checkboxInput('flip', 'Flip'),
                           
                           selectInput('facet_row', 'Facet Row', c(None='.', names(df3))),
                           selectInput('facet_col', 'Facet Column', c(None='.', names(df3)))
@@ -123,6 +123,9 @@ server <- function(input, output){
     facets1 <- paste(input$facet_row, '~', input$facet_col)
     if (facets1 != '. ~ .')
       g3 <- g3 + facet_grid(facets1)
+    
+    if (input$flip)
+      g3 <- g3 + coord_flip()
     
     if (input$jitter)
       g3 <- g3 + geom_jitter()
