@@ -3,6 +3,7 @@ library(readxl)
 library(qdap)
 library(shiny)
 #library(data.table)
+library(plotly)
 library(scales)
 #library(waffle)
 #library(ggExtra)
@@ -76,7 +77,7 @@ ui <- fluidPage(
                         ),
                         
                         mainPanel(
-                          plotOutput('scatter')))),
+                          plotlyOutput('scatter', height = '600px')))),
              
              tabPanel("Livestock",
                       sidebarLayout(
@@ -86,7 +87,7 @@ ui <- fluidPage(
                         ),
                         
                         mainPanel(
-                          plotOutput('bar')
+                          plotlyOutput('bar', height = '600px')
                         ))
              )
   )
@@ -98,7 +99,7 @@ server <- function(input, output){
   #Reactivity
   selectedData <- reactive({df3})
   
-  output$scatter <- renderPlot({
+  output$scatter <- renderPlotly({
     if (input$xcol %in% ctgr & input$ycol %in% cont)
       g3 <- ggplot(selectedData(), aes_string(x=input$xcol,y=input$ycol)) + 
         geom_boxplot()
@@ -108,7 +109,7 @@ server <- function(input, output){
     else if (input$xcol %in% ctgr & input$ycol %in% ctgr)
       g3 <- ggplot(selectedData(), aes_string(x=input$xcol)) + 
         geom_bar(width = .5, fill='#CC79A7') +
-        geom_text(stat='count',aes(label=..count..),vjust=-0.6) +
+        #geom_text(stat='count',aes(label=..count..),vjust=-0.6) +
         labs(x='Values')
     else if (input$xcol %in% cont & input$ycol %in% cont & input$xcol==input$ycol)
       g3 <- ggplot(selectedData(), aes_string(x=input$xcol)) + 
@@ -133,10 +134,11 @@ server <- function(input, output){
     if (input$smooth)
       g3 <- g3 + geom_smooth(method = 'loess')
     
-    print(g3)
-  }, height = 600)
+    #print(g3)
+    ggplotly(g3)
+  })
   
-  output$bar <- renderPlot({
+  output$bar <- renderPlotly({
     g4 <- ggplot(livestock, aes(HHID,number,fill=livestock)) +
       theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +   #no tick marks
       labs(x = 'Households', y = 'Percentage') + 
@@ -148,8 +150,9 @@ server <- function(input, output){
     if (facets2 != '. ~ .')
       g4 <- g4 + facet_grid(facets2, space="free_x", scales="free_x")
     
-    print(g4)
-  }, height = 600)
+    #print(g4)
+    ggplotly(g4)
+  })
 }
 
 # Create Shiny app ----
