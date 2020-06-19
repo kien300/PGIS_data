@@ -1,11 +1,6 @@
-library(tidyverse)
-library(readxl)
-library(qdap)
-library(shiny)
-#library(data.table)
-library(scales)
-#library(waffle)
-#library(ggExtra)
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(tidyverse, readxl, qdap, shiny, scales, data.table, 
+               waffle, ggExtra)
 
 #load dataset from Dropbox----
 main <- read.csv('https://www.dropbox.com/s/a6jtuhe3sinc8wc/main.csv?raw=1')
@@ -17,17 +12,17 @@ tol9qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933",
                   "#DDCC77", "#CC6677", "#882255", "#AA4499")
 
 #tidy names
-d <- c('Number','Country','Interviewer','Location','Commune','Village','HHID','Full_Name',
-       'Sex','Age','Community','Education','Number_of_Adults', 'Number_of_Non_Adults',
-       'Number_of_Fields','Number_of_Annuals', 'Number_of_Perennials', 
-       'Number_of_Annual_Perennials','Migration_Origin','Years_of_Migration',
-       'Off_Farm_Employment','Distribution_Labor','Livestock?','pigeon','cows','goats',
-       'buffaloes','pig','chicken','ducks','fish','horses')
-names(main)[1:32] <- d
+new_names <- c('Number','Country','Interviewer','Location','Commune','Village','HHID',
+               'Full_Name','Sex','Age','Community','Education','Number_of_Adults', 
+               'Number_of_Non_Adults','Number_of_Fields','Number_of_Annuals', 
+               'Number_of_Perennials','Number_of_Annual_Perennials','Migration_Origin',
+               'Years_of_Migration','Off_Farm_Employment','Distribution_Labor','Livestock?',
+               'pigeon','cows','goats','buffaloes','pig','chicken','ducks','fish','horses')
+names(main)[1:32] <- new_names
 
-b <- c('pigeon','cows','goats','buffaloes','pig','chicken','ducks','fish','horses')
-main[b] <- lapply(main[b], 
-                  function(x) as.numeric(as.character(x))) # change data types to numeric
+livestock_names <- c('pigeon','cows','goats','buffaloes','pig','chicken','ducks','fish','horses')
+main[livestock_names] <- lapply(main[livestock_names], 
+                                function(x) as.numeric(as.character(x))) # change data types to numeric
 
 #tidy livestock
 livestock <- main %>% select(Country,HHID,Sex,Community,Education,Migration_Origin,
@@ -35,9 +30,9 @@ livestock <- main %>% select(Country,HHID,Sex,Community,Education,Migration_Orig
                              pigeon,cows,goats,buffaloes,pig,chicken,
                              ducks,fish,horses) #choose livestock columns
 
-livestock <- livestock %>% gather(livestock, number, 9:17) #new view
-livestock <- livestock[!(is.na(livestock$number)),] #remove all NA observations
-livestock <- livestock[livestock$number!=0,] #remove all 0s values
+livestock <- livestock %>% 
+  pivot_longer(names_to = "livestock",values_to = "number",c(9:17)) %>% 
+  filter(!is.na(number) & number != 0)
 
 #tidy Demographics
 df3 <- main %>% select(Country,Sex,Community,Education,Distribution_Labor,
@@ -48,9 +43,11 @@ df3 <- main %>% select(Country,Sex,Community,Education,Distribution_Labor,
 df3$Years_of_Migration <- as.character(df3$Years_of_Migration) #because it was factor
 df3$Years_of_Migration <- as.integer(df3$Years_of_Migration)
 
-ctgr <- c('Country','Sex','Community','Education','Distribution_Labor')
-cont <- c('Age','Number_of_Adults','Number_of_Fields','Number_of_Annuals',
-          'Number_of_Perennials','Number_of_Annual_Perennials','Years_of_Migration')
+ctgr <- df3 %>% select_if(is.factor) %>% 
+  names()
+
+cont <- df3 %>% select_if(is.numeric) %>% 
+  names()
 
 #define UI----
 ui <- fluidPage(
@@ -103,8 +100,8 @@ server <- function(input, output){
       g3 <- ggplot(selectedData(), aes_string(x=input$xcol,y=input$ycol)) + 
         geom_boxplot()
     else if (input$xcol %in% cont & input$ycol %in% ctgr)
-      g3 <- ggplot(selectedData(), aes_string(x=input$xcol,y=input$ycol)) + 
-        geom_boxplot() + coord_flip() #why this doesnt work???
+      g3 <- ggplot(selectedData(), aes_string(x=input$ycol,y=input$xcol)) + 
+        geom_boxplot() + coord_flip()
     else if (input$xcol %in% ctgr & input$ycol %in% ctgr)
       g3 <- ggplot(selectedData(), aes_string(x=input$xcol)) + 
         geom_bar(width = .5, fill='#CC79A7') +
@@ -116,6 +113,9 @@ server <- function(input, output){
     else
       g3 <- ggplot(selectedData(), aes_string(x=input$xcol,y=input$ycol)) + 
         geom_point()
+    
+    # some theme elements
+    g3 <- g3 + theme(axis.title = element_text(size = 15, face = "bold"))
     
     if (input$color != 'None')
       g3 <- g3 + aes_string(color=input$color)
